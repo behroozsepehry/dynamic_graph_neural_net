@@ -6,10 +6,10 @@ class Parameter(object):
     """Parameter of modules storing both the values and gradients"""
     def __init__(self, data: np.ndarray):
         self.data = data
-        self.grad = 0
+        self.grad = 0.
 
     def zero_grad(self):
-        self.grad = 0
+        self.grad = 0.
 
 
 class Module(ABC):
@@ -43,6 +43,22 @@ class Module(ABC):
     def all_params(self):
         """Return all parameters contained in the module for optimization"""
         raise NotImplementedError
+
+    @abstractmethod
+    def name(self):
+        """A unique and constant name for the module"""
+        raise NotImplementedError
+
+    def zero_grad(self):
+        def zero_grad_param(p):
+            if type(p) is Parameter:
+                p.zero_grad()
+            else:
+                for pp in p.values():
+                    zero_grad_param(pp)
+
+        params = self.all_params()
+        zero_grad_param(params)
 
 
 class Tensor(object):

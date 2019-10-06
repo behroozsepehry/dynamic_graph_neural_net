@@ -1,9 +1,14 @@
 import numpy as np
+
 import one.deeplearning.modules.base as base
 
 
 class Linear(base.Module):
     """Linear layer"""
+
+    # A unique id that is incremented each time a linear layer is created
+    id = 0
+
     def __init__(self, dim_in: int, dim_out: int):
         """ Kaiming initialization
 
@@ -11,6 +16,8 @@ class Linear(base.Module):
         :param dim_out:
         """
         super(Linear, self).__init__()
+        self.id = Linear.id
+        Linear.id += 1
         # Initialize weight
         self.params['w'] = base.Parameter(np.random.randn(dim_in, dim_out) * ((2 / dim_in) ** 0.5))
         # initialize bias
@@ -32,9 +39,21 @@ class Linear(base.Module):
     def all_params(self):
         return self.params
 
+    def name(self):
+        return 'Linear_' + str(self.id)
+
 
 class Relu(base.Module):
     """RELU activation layer"""
+
+    # A unique id that is incremented each time a Relu layer is created
+    id = 0
+
+    def __init__(self):
+        super(Relu, self).__init__()
+        self.id = Relu.id
+        Relu.id += 1
+
     def forward(self, input: base.Tensor):
         positive = input.data > 0
         output_data = positive * input.data
@@ -49,11 +68,20 @@ class Relu(base.Module):
     def all_params(self):
         return self.params
 
+    def name(self):
+        return 'RELU_' + str(self.id)
+
 
 class Dropout(base.Module):
     """Dropout layer"""
+
+    # A unique id that is incremented each time a Relu layer is created
+    id = 0
+
     def __init__(self, rate):
         super(Dropout, self).__init__()
+        self.id = Dropout.id
+        Dropout.id += 1
         self.rate = rate
 
     def forward(self, input: base.Tensor):
@@ -69,6 +97,9 @@ class Dropout(base.Module):
 
     def all_params(self):
         return self.params
+
+    def name(self):
+        return 'Dropout_' + str(self.id)
 
 
 if __name__ == '__main__':

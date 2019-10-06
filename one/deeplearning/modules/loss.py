@@ -4,6 +4,15 @@ import one.deeplearning.modules.base as base
 
 class BinaryCrossEntropySigmoid(base.Module):
     """Applies sigmoid, then finds binary cross entropy"""
+
+    # A unique id that is incremented each time a BinaryCrossEntropySigmoid layer is created
+    id = 0
+
+    def __init__(self):
+        super(BinaryCrossEntropySigmoid, self).__init__()
+        self.id = BinaryCrossEntropySigmoid.id
+        BinaryCrossEntropySigmoid.id += 1
+
     def forward(self, input: base.Tensor, target: np.ndarray):
         # Log sum exp trick to calculate log(exp(x)+exp(0))
         input_data_positive = input.data * (input.data > 0)
@@ -26,10 +35,14 @@ class BinaryCrossEntropySigmoid(base.Module):
     def all_params(self):
         return self.params
 
+    def name(self):
+        return 'BinaryCrossEntropySigmoid_' + str(self.id)
+
 
 if __name__ == '__main__':
     from one.deeplearning.modules import linear as lin
-    l1 = lin.Linear(3, 1)
+    l1 = lin.Linear(3, 2)
+    l2 = lin.Linear(2, 1)
     ent = BinaryCrossEntropySigmoid()
 
     input = base.Tensor(np.random.rand(2, 3))
@@ -39,7 +52,7 @@ if __name__ == '__main__':
     print('loss', ce.data)
     print('expected loss', 0.31)
 
-    output1 = l1(input)
+    output1 = l2(l1(input))
     output2 = ent(output1, target)
     print(output2.data)
     output2.backward()
