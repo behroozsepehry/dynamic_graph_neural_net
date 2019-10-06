@@ -1,4 +1,3 @@
-from typing import List, Dict
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -33,6 +32,11 @@ class Module(ABC):
     @abstractmethod
     def backward(self, *args, **kwargs):
         """Backward propagation"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def all_params(self):
+        """Return all parameters contained in the module for optimization"""
         raise NotImplementedError
 
 

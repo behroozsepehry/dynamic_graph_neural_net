@@ -24,11 +24,39 @@ class Linear(base.Module):
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
         input_data = output.state['input_data']
-        self.params['w'].grad = np.einsum('ij,ik->jk', input_data, grad_output)
-        self.params['b'].grad = np.einsum('ij->i', grad_output)
+        self.params['w'].grad = self.params['w'].grad + np.einsum('ij,ik->jk', input_data, grad_output)
+        self.params['b'].grad = self.params['b'].grad + np.einsum('ij->i', grad_output)
         grad_input = np.einsum('ik,jk->ij', grad_output, self.params['w'].data)
         return grad_input
 
 
 class Relu(base.Module):
-    
+    """RELU activation layer"""
+    def forward(self, input: base.Tensor):
+        positive = input.data >= 0
+        output_data = positive * input.data
+        output = base.Tensor(data=output_data, module=self, state={'positive': positive}, previous=input)
+        return output
+
+    def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        positive = output.state['positive']
+        grad_input = positive * grad_output
+        return grad_input
+
+
+class Dropout(base.Module):
+    """Dropout layer"""
+    def __init__(self, rate):
+        super(Dropout, self).__init__()
+        self.rate = rate
+
+    def forward(self, input: base.Tensor):
+        mask = np.random.choice([False, True], size=input.data.shape, p=[self.rate, 1-self.rate])
+        output_data = mask * input.data
+        output = base.Tensor(data=output_data, module=self, state={'mask': mask}, previous=input)
+        return output
+
+    def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        mask = output.state['mask']
+        grad_input = mask * grad_output
+        return grad_input
