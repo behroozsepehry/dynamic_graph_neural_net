@@ -36,7 +36,7 @@ class Linear(base.Module):
 class Relu(base.Module):
     """RELU activation layer"""
     def forward(self, input: base.Tensor):
-        positive = input.data >= 0
+        positive = input.data > 0
         output_data = positive * input.data
         output = base.Tensor(data=output_data, module=self, state={'positive': positive}, previous=[input])
         return output
