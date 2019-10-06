@@ -30,8 +30,13 @@ class Module(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def backward(self, *args, **kwargs):
-        """Backward propagation"""
+    def backward(self, output, grad_output: np.ndarray):
+        """Backward propagation
+
+        :param output:
+        :param grad_output:
+        :return: (List) For every input should return a grad_input, in the same order
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -52,3 +57,16 @@ class Tensor(object):
         self.state = kwargs.get('state', {})
         # The module that generated this tensor
         self.module = module
+
+    def backward(self, grad: np.ndarray = None):
+        """Backpropagation algorithm"""
+
+        # If last layer, use identity gradient
+        if grad is None:
+            grad = np.ones(self.data.shape)
+
+        # For previous layers, backpropagate the gradient
+        if self.module:
+            grads_previous = self.module.backward(self, grad)
+            for i, g in enumerate(grads_previous):
+                self.previous[i].backward(g)

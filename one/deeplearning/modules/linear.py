@@ -27,7 +27,10 @@ class Linear(base.Module):
         self.params['w'].grad = self.params['w'].grad + np.einsum('ij,ik->jk', input_data, grad_output)
         self.params['b'].grad = self.params['b'].grad + np.einsum('ij->i', grad_output)
         grad_input = np.einsum('ik,jk->ij', grad_output, self.params['w'].data)
-        return grad_input
+        return [grad_input]
+
+    def all_params(self):
+        return self.params
 
 
 class Relu(base.Module):
@@ -35,13 +38,16 @@ class Relu(base.Module):
     def forward(self, input: base.Tensor):
         positive = input.data >= 0
         output_data = positive * input.data
-        output = base.Tensor(data=output_data, module=self, state={'positive': positive}, previous=input)
+        output = base.Tensor(data=output_data, module=self, state={'positive': positive}, previous=[input])
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
         positive = output.state['positive']
         grad_input = positive * grad_output
-        return grad_input
+        return [grad_input]
+
+    def all_params(self):
+        return self.params
 
 
 class Dropout(base.Module):
@@ -53,10 +59,25 @@ class Dropout(base.Module):
     def forward(self, input: base.Tensor):
         mask = np.random.choice([False, True], size=input.data.shape, p=[self.rate, 1-self.rate])
         output_data = mask * input.data
-        output = base.Tensor(data=output_data, module=self, state={'mask': mask}, previous=input)
+        output = base.Tensor(data=output_data, module=self, state={'mask': mask}, previous=[input])
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
         mask = output.state['mask']
         grad_input = mask * grad_output
-        return grad_input
+        return [grad_input]
+
+    def all_params(self):
+        return self.params
+
+
+if __name__ == '__main__':
+    input = base.Tensor(np.random.rand(2, 3))
+    l1 = Linear(3, 4)
+    d1 = Dropout(0.5)
+    r1 = Relu()
+    output = l1(input)
+    output = d1(output)
+    output = r1(output)
+    print(output.data)
+    output.backward()
