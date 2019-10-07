@@ -1,6 +1,7 @@
 import numpy as np
 import time
 from matplotlib import pyplot as plt
+import copy
 
 from one.deeplearning.modules.sequential import Sequential
 from one.deeplearning.modules.linear import Linear, Relu, Dropout
@@ -37,8 +38,8 @@ def compute_confusion_matrix(model, dataloader_iterator):
     return confusion_matrix_samples, confusion_matrix_counts
 
 
-def show_confusion_matrix_samples(confusion_matrix_samples, image_shape):
-    fig, ax = plt.subplots(nrows=2, ncols=2)
+def show_confusion_matrix_samples(confusion_matrix_samples, image_shape, nrows=2, ncols=2):
+    fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
 
     for i, row in enumerate(ax):
         for j, col in enumerate(row):
@@ -51,6 +52,18 @@ def show_confusion_matrix_samples(confusion_matrix_samples, image_shape):
 
 
 def train_cross_validate(model, optimizer, dataloader, loss_func, metric_func, n_epochs):
+    """
+
+    :param model:
+    :param optimizer:
+    :param dataloader:
+    :param loss_func:
+    :param metric_func: For better models, metric must be higher
+    :param n_epochs:
+    :return:
+    """
+    best_model = None
+    best_epoch_metric_val = -np.inf
     t0 = time.time()
     for epoch in range(n_epochs):
         epoch_loss_train = 0.
@@ -72,8 +85,12 @@ def train_cross_validate(model, optimizer, dataloader, loss_func, metric_func, n
         epoch_metric_val = compute_metric(model, metric_func, dataloader(validation=True))
         print('epoch: %s, train_loss: %.3f, train_metric: %.3f, val_metric: %.3f'
               % (epoch, epoch_loss_train, epoch_metric_train, epoch_metric_val))
+        if epoch_metric_val > best_epoch_metric_val:
+            best_model = copy.deepcopy(model)
+            best_epoch_metric_val = epoch_metric_val
 
     print('Finished training in %.3f seconds' % (time.time()-t0))
+    return best_model
 
 
 def main():
@@ -102,14 +119,14 @@ def main():
     loss = BinaryCrossEntropySigmoid()
     metric = Accuracy(mode='avg')
     optimizer = Sgd(model.all_params(), lr=0.0001)
-    train_cross_validate(model, optimizer, dataloader_train, loss, metric, 10)
+    train_cross_validate(model, optimizer, dataloader_train, loss, metric, n_epochs=10)
 
     test_metric = compute_metric(model, metric, dataloader_test())
     print('Test metric: %.3f' % test_metric)
     test_confusion_matrix_samples, confusion_matrix_counts = compute_confusion_matrix(model, dataloader_test())
     confusion_matrix_ratio = confusion_matrix_counts/np.sum(confusion_matrix_counts)
     print('Test data confusion matrix:\n%s' % confusion_matrix_ratio)
-    show_confusion_matrix_samples(test_confusion_matrix_samples, (28, 28))
+    show_confusion_matrix_samples(test_confusion_matrix_samples, image_shape=(28, 28))
 
 
 if __name__ == '__main__':
