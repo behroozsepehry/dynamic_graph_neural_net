@@ -32,7 +32,7 @@ class Linear(base.Module):
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
         input_data = output.state['input_data']
         self.params['w'].grad = self.params['w'].grad + np.einsum('ij,ik->jk', input_data, grad_output)
-        self.params['b'].grad = self.params['b'].grad + np.einsum('ij->i', grad_output)
+        self.params['b'].grad = self.params['b'].grad + np.einsum('ij->j', grad_output)
         grad_input = np.einsum('ik,jk->ij', grad_output, self.params['w'].data)
         return [grad_input]
 

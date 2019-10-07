@@ -1,4 +1,5 @@
 import numpy as np
+
 import one.deeplearning.modules.base as base
 
 
@@ -29,7 +30,7 @@ class BinaryCrossEntropySigmoid(base.Module):
         batch_size = target.shape[0]
         sigmoids = 1. - (1. / np.exp(log_sum))
         grad_input = (1-target) * sigmoids - target * (1-sigmoids)
-        grad_input = grad_input / batch_size
+        grad_input = grad_input * grad_output / batch_size
         return [grad_input]
 
     def all_params(self):
