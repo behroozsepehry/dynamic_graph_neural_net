@@ -1,4 +1,8 @@
+import copy
+from matplotlib import pyplot as plt
+
 from keras import models, layers, losses, datasets, utils, optimizers, callbacks
+from keras import backend as K
 
 from two import one_cycle
 
@@ -46,15 +50,41 @@ def main():
     batch_size = 32
     epochs = 10
     validation_split = 0.1
+    lr_max = 1.
+    lr_min = 1e-08
+    lr_scale = 0.1
+    smoothing_beta = 0.98
+    verbose = 1
+
     optimizer = get_optimizer()
     model = get_model(optimizer)
+    model_untrained1 = copy.deepcopy(model)
+    model_untrained2 = copy.deepcopy(model)
+
     (x_train, y_train), (x_test, y_test) = get_dataset()
-    one_cycle.find_lr(model, x_train, y_train, lr_max=0.1, lr_min=1e-08, batch_size=32)
-    model.fit(x_train, y_train,
-              batch_size=batch_size,
-              epochs=epochs,
-              validation_split=validation_split,
-              shuffle=True)
+    lr = one_cycle.find_lr(model, x_train, y_train,
+                      lr_max=lr_max, lr_min=lr_min, lr_scale=lr_scale,
+                      batch_size=batch_size, smoothing_beta=smoothing_beta, verbose=verbose)
+
+    K.set_value(model_untrained1.optimizer.lr, lr)
+    schedule_one_cycle = one_cycle.CycleLrSchedule(n_epochs=epochs, lr_max=lr, lr_min=lr*lr_scale)
+    scheduler_one_cycle = callbacks.callbacks.LearningRateScheduler(schedule_one_cycle, verbose=verbose)
+    history_one_cycle = model_untrained1.fit(x_train, y_train,
+                                             batch_size=batch_size,
+                                             epochs=epochs,
+                                             validation_split=validation_split,
+                                             callbacks=[scheduler_one_cycle],
+                                             shuffle=True)
+    one_cycle.plot_train_history(history_one_cycle)
+
+    K.set_value(model_untrained1.optimizer.lr, lr)
+    history_const_lr = model_untrained2.fit(x_train, y_train,
+                         batch_size=batch_size,
+                         epochs=epochs,
+                         validation_split=validation_split,
+                         shuffle=True)
+    one_cycle.plot_train_history(history_const_lr)
+
 
 
 if __name__ == '__main__':
