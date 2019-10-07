@@ -18,13 +18,18 @@ class BinaryCrossEntropySigmoid(base.Module):
         # Log sum exp trick to calculate log(exp(x)+exp(0))
         input_data_positive = input.data * (input.data > 0)
         log_sum = input_data_positive + np.log(np.exp(input.data-input_data_positive) + np.exp(-input_data_positive))
+
+        # Loss value per data point in batch
         output_data_batch = -(target * (input.data - log_sum) + (1-target) * (-log_sum))
+
+        # Total loss value, average of individual losses
         output_data = np.mean(output_data_batch, axis=0, keepdims=True)
         output = base.Tensor(data=output_data, module=self,
                              state={'log_sum': log_sum, 'target': target}, previous=[input])
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        """Compute gradient wrt input"""
         target = output.state['target']
         log_sum = output.state['log_sum']
         batch_size = target.shape[0]

@@ -1,6 +1,7 @@
 import copy
-from matplotlib import pyplot as plt
+import numpy as np
 
+import tensorflow
 from keras import models, layers, losses, datasets, utils, optimizers, callbacks
 from keras import backend as K
 
@@ -8,8 +9,10 @@ from two import one_cycle
 
 
 def get_model(optimizer):
-    # Lenet 5 based on https://engmrk.com/lenet-5-a-classic-cnn-architecture/
-    # We do not implement the symmetry breaking of the original paper of LeCun
+    """Lenet 5
+    code based on based on https://engmrk.com/lenet-5-a-classic-cnn-architecture/
+    We do not implement the symmetry breaking of the original paper of LeCun
+    """
     model = models.Sequential([
         layers.Conv2D(6, kernel_size=(5, 5), strides=(1, 1),
                       activation='tanh', input_shape=(32, 32, 3), padding='valid'),
@@ -28,12 +31,14 @@ def get_model(optimizer):
 
 
 def get_optimizer():
-    optimizer = optimizers.SGD(learning_rate=0.1)
+    optimizer = optimizers.SGD()
     return optimizer
 
 
 def get_dataset():
-    # Code based on https://keras.io/examples/cifar10_cnn/
+    """CIFAR 10 dataset
+    Code based on https://keras.io/examples/cifar10_cnn/
+    """
     num_classes = 10
     (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
     # Convert class vectors to binary class matrices.
@@ -47,27 +52,43 @@ def get_dataset():
 
 
 def main():
+    # Set hyperparameters
+    train_data_truncate_ratio = 0.3  # truncate training data for faster experiments
     batch_size = 32
     epochs = 10
-    validation_split = 0.1
-    lr_max = 1.
-    lr_min = 1e-08
-    lr_scale = 0.1
-    smoothing_beta = 0.98
+    validation_split = 0.3
+    lr_max = 1.  # upper bound on search interval for learning rate
+    lr_min = 1e-08  # lower bound on search interval for learning rate
+    lr_scale_finding = 1.0  # How to scale the best learning rate found, which could be large
+    lr_scale_training = 0.1  # Ratio of smallest learning rate used in training to the found learning rate
+    smoothing_beta = 0.98  # Smoothing parameter in learning rate finding
     verbose = 1
 
+    # Set seeds
+    np.random.seed(0)
+    tensorflow.set_random_seed(0)
+
+    # Get model
     optimizer = get_optimizer()
     model = get_model(optimizer)
     model_untrained1 = copy.deepcopy(model)
     model_untrained2 = copy.deepcopy(model)
+    model_untrained3 = copy.deepcopy(model)
 
+    # Get data
     (x_train, y_train), (x_test, y_test) = get_dataset()
+    truncate_ind = int(train_data_truncate_ratio * len(x_train))
+    x_train = x_train[:truncate_ind]
+    y_train = y_train[:truncate_ind]
+
+    # Find learning rate
     lr = one_cycle.find_lr(model, x_train, y_train,
-                      lr_max=lr_max, lr_min=lr_min, lr_scale=lr_scale,
+                      lr_max=lr_max, lr_min=lr_min, lr_scale=lr_scale_finding,
                       batch_size=batch_size, smoothing_beta=smoothing_beta, verbose=verbose)
 
+    # Train model using one cycle policy on learning rate schedule
     K.set_value(model_untrained1.optimizer.lr, lr)
-    schedule_one_cycle = one_cycle.CycleLrSchedule(n_epochs=epochs, lr_max=lr, lr_min=lr*lr_scale)
+    schedule_one_cycle = one_cycle.CycleLrSchedule(n_epochs=epochs, lr_max=lr, lr_min=lr*lr_scale_training)
     scheduler_one_cycle = callbacks.callbacks.LearningRateScheduler(schedule_one_cycle, verbose=verbose)
     history_one_cycle = model_untrained1.fit(x_train, y_train,
                                              batch_size=batch_size,
@@ -75,16 +96,26 @@ def main():
                                              validation_split=validation_split,
                                              callbacks=[scheduler_one_cycle],
                                              shuffle=True)
-    one_cycle.plot_train_history(history_one_cycle)
 
-    K.set_value(model_untrained1.optimizer.lr, lr)
-    history_const_lr = model_untrained2.fit(x_train, y_train,
-                         batch_size=batch_size,
-                         epochs=epochs,
-                         validation_split=validation_split,
-                         shuffle=True)
-    one_cycle.plot_train_history(history_const_lr)
+    # Train model using constant learning rate
+    K.set_value(model_untrained2.optimizer.lr, lr)
+    history_const_lr_large = model_untrained2.fit(x_train, y_train,
+                                                  batch_size=batch_size,
+                                                  epochs=epochs,
+                                                  validation_split=validation_split,
+                                                  shuffle=True)
 
+    # Train model using constant learning rate
+    K.set_value(model_untrained3.optimizer.lr, lr*lr_scale_training)
+    history_const_lr_small = model_untrained3.fit(x_train, y_train,
+                                                  batch_size=batch_size,
+                                                  epochs=epochs,
+                                                  validation_split=validation_split,
+                                                  shuffle=True)
+    # Plot training history for different learning rate schedules
+    one_cycle.plot_train_histories({'One Cycle': history_one_cycle,
+                                    'Constant Large': history_const_lr_large,
+                                    'Constant Small': history_const_lr_small})
 
 
 if __name__ == '__main__':

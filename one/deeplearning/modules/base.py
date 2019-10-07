@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
+from typing import List, Dict
 
 
 class Parameter(object):
@@ -21,35 +22,33 @@ class Module(ABC):
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
 
-    def __call_backward__(self, *args, **kwargs):
-        return self.backward(*args, **kwargs)
-
     @abstractmethod
     def forward(self, *args, **kwargs):
         """Forward propagation"""
         raise NotImplementedError
 
     @abstractmethod
-    def backward(self, output, grad_output: np.ndarray):
+    def backward(self, output, grad_output: np.ndarray) -> List:
         """Backward propagation
 
-        :param output:
-        :param grad_output:
-        :return: (List) For every input should return a grad_input, in the same order
+        :param output: output Tensor previously created by this module
+        :param grad_output: gradient of output
+        :return: For every input must return a grad_input, in the same order
         """
         raise NotImplementedError
 
     @abstractmethod
-    def all_params(self):
+    def all_params(self) -> Dict:
         """Return all parameters contained in the module for optimization"""
         raise NotImplementedError
 
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         """A unique and constant name for the module"""
         raise NotImplementedError
 
     def zero_grad(self):
+        """Set gradients to 0, to reset the result of previous backpropagations"""
         def zero_grad_param(p):
             if type(p) is Parameter:
                 p.zero_grad()
@@ -63,7 +62,7 @@ class Module(ABC):
 
 class Tensor(object):
     """Extend numpy arrays for dynamic computational graphs
-    Usually first dimension is for batches
+        First dimension is for batches in all modeules we create
     """
     def __init__(self, data: np.ndarray, module: Module = None, **kwargs):
         self.data = data
@@ -86,3 +85,10 @@ class Tensor(object):
             grads_previous = self.module.backward(self, grad)
             for i, g in enumerate(grads_previous):
                 self.previous[i].backward(g)
+
+                
+class Optimizer(ABC):
+    """Base class for optimizers"""
+    @abstractmethod
+    def step(self):
+        raise NotImplementedError

@@ -13,7 +13,9 @@ class Dataloader(ABC):
 
 
 class NumpyDataIterator(object):
-    def __init__(self, x, y, batch_size=1, shuffle=False):
+    """Iterator on numpy array dataset"""
+    def __init__(self, x: np.ndarray, y:np.ndarray,
+                 batch_size=1, shuffle=False):
         self.x = x
         self.y = y
         self.shuffle = shuffle
@@ -22,6 +24,7 @@ class NumpyDataIterator(object):
     def __iter__(self):
         self.inds = np.arange(len(self.x))
         if self.shuffle:
+            # In the beginning of iteration, shuffle the indicies
             np.random.shuffle(self.inds)
         self.i = 0
         return self
@@ -38,7 +41,7 @@ class NumpyDataIterator(object):
 
 
 class ClassificationCsvDataLoader(Dataloader):
-
+    """Data loader for csv datasets for classification"""
     def __init__(self, path: str,
                  y_labels: List['str'],
                  batch_size=1,
@@ -49,9 +52,9 @@ class ClassificationCsvDataLoader(Dataloader):
                  map_x=None):
         """
         :param path: path to the csv file
-        :param y_labels: the labels of the csv file corresponding to the target values
+        :param y_labels: label of the csv file corresponding to the output feature
         :param shuffle: whether to shuffle the data each time iterating over it
-        :param val_ratio: ratio of data dedicated to validation set, first val_ratio% of data will become validation data
+        :param val_ratio: ratio of data dedicated to validation set, first val_ratio % of data will become validation data
         :param filter_y: only consider rows that have target value in filter_y
         :param map_y: function applied to all targets
         :param map_x: function applied to all input features
@@ -85,7 +88,7 @@ class ClassificationCsvDataLoader(Dataloader):
     def __call__(self, validation=False) -> NumpyDataIterator:
         """
         :param validation: whether to return validation data or not
-        :return:
+        :return: iterator on data
         """
         if validation:
             return self.data_iterator_val

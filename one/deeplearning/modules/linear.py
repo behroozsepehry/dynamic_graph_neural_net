@@ -4,7 +4,7 @@ import one.deeplearning.modules.base as base
 
 
 class Linear(base.Module):
-    """Linear layer"""
+    """Linear fully connected layer"""
 
     # A unique id that is incremented each time a linear layer is created
     id = 0
@@ -12,8 +12,8 @@ class Linear(base.Module):
     def __init__(self, dim_in: int, dim_out: int):
         """ Kaiming initialization
 
-        :param dim_in:
-        :param dim_out:
+        :param dim_in: input dimension
+        :param dim_out: output dimension
         """
         super(Linear, self).__init__()
         self.id = Linear.id
@@ -30,6 +30,7 @@ class Linear(base.Module):
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        """Compute gradient wrt parameters and input"""
         input_data = output.state['input_data']
         self.params['w'].grad = self.params['w'].grad + np.einsum('ij,ik->jk', input_data, grad_output)
         self.params['b'].grad = self.params['b'].grad + np.einsum('ij->j', grad_output)
@@ -55,12 +56,14 @@ class Relu(base.Module):
         Relu.id += 1
 
     def forward(self, input: base.Tensor):
+        """Compute max(x, 0)"""
         positive = input.data > 0
         output_data = positive * input.data
         output = base.Tensor(data=output_data, module=self, state={'positive': positive}, previous=[input])
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        """Compute gradient wrt input"""
         positive = output.state['positive']
         grad_input = positive * grad_output
         return [grad_input]
@@ -79,18 +82,23 @@ class Dropout(base.Module):
     id = 0
 
     def __init__(self, rate):
+        """
+        :param rate: the probability of masking a value
+        """
         super(Dropout, self).__init__()
         self.id = Dropout.id
         Dropout.id += 1
         self.rate = rate
 
     def forward(self, input: base.Tensor):
+        """Randomly mask"""
         mask = np.random.choice([False, True], size=input.data.shape, p=[self.rate, 1-self.rate])
         output_data = mask * input.data
         output = base.Tensor(data=output_data, module=self, state={'mask': mask}, previous=[input])
         return output
 
     def backward(self, output: base.Tensor, grad_output: np.ndarray):
+        """Compute gradients wrt input"""
         mask = output.state['mask']
         grad_input = mask * grad_output
         return [grad_input]
@@ -103,6 +111,7 @@ class Dropout(base.Module):
 
 
 if __name__ == '__main__':
+    # Here we can see the benefit of dynamic graphs
     input = base.Tensor(np.random.rand(2, 3))
     l1 = Linear(3, 4)
     d1 = Dropout(0.5)

@@ -9,7 +9,7 @@ class Metric(ABC):
 
 
 class Accuracy(Metric):
-    """Count the number of elements equal in two numpy arrays"""
+    """Count the number of elements equal between two numpy arrays"""
     def __init__(self, mode: str = 'avg'):
         if mode not in ['sum', 'avg']:
             raise ValueError('mode must be sum or avg')

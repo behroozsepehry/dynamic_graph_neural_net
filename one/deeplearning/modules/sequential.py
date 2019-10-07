@@ -12,7 +12,7 @@ class Sequential(base.Module):
 
     def __init__(self, layers: List[base.Module]):
         """
-        :param layers: list of modules
+        :param layers: list of modules attached together sequentially
         """
         super(Sequential, self).__init__()
         self.id = Sequential.id
@@ -27,7 +27,7 @@ class Sequential(base.Module):
 
     def backward(self, output, grad_output: np.ndarray):
         """No need to define backward
-        as all the modules in the sequence should already have backward"""
+            as all the modules in the sequence should already have backward"""
         pass
 
     def all_params(self):

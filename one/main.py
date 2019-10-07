@@ -5,7 +5,7 @@ import copy
 
 from one.deeplearning.modules.sequential import Sequential
 from one.deeplearning.modules.linear import Linear, Relu, Dropout
-from one.deeplearning.optim.sgd import Sgd
+from one.deeplearning.modules.optim import Sgd
 from one.deeplearning.utils.metrics import Accuracy
 from one.deeplearning.modules.loss import BinaryCrossEntropySigmoid
 from one.deeplearning.utils.dataloader import ClassificationCsvDataLoader
