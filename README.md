@@ -48,7 +48,7 @@ Test data confusion matrix:
 We see that the model made more mistakes on 7s compared to 2s. This might be attributed to the fact 2s in most handwritings has a dent in its bottom which makes detecting most 2s easier. This statement is very speculative, and need further investigation.
 
 In the end, we show one sample belonging to each cell of the confusion matrix.  
-![][image1]
+![Figure_1](Figure_1.png)
 
 ## two
 
@@ -61,14 +61,14 @@ In the interest of time, we only use 30% of the training data from the CIFAR 10 
 The idea of the proposed method from “Super-Convergence: Very Fast Training of Neural Networks Using Large Learning Rates” for setting the value of learning rate could be divided into two phases. For the sake of brevity, we refer to the method by one cycle policy.
 
 In the first phase, we run training for 1 epoch, starting from a very small learning rate, and between every batch, we increase the learning rate by a constant, so that on the last batch, we would have a very large learning rate. In our experiment, the training loss versus as we were increasing the learning rate looked as follows.  
-![][image2]  
+![Figure_2](Figure_2.png) 
 We pick a learning rate near the minima of the plot, but a little smaller, since at this learning rate the model has already started getting worse.
 
 In the second phase, we actually use this learning rate to train the mode. However, instead of using a fixed learning rate, in the first half of the training, we start from a smaller learning rate, and linearly increase it until in the middle it reaches the learning rate found from the first phase, then again we linearly decrease it to reach the learning rate that we started. Leslie N. Smith et al, also proposes further decrease in the learning rate in the end, but in the interest of time, we do not implement it. Hence the learning rate in each training epoch would look like this   
-![][image3]  
+![Figure_3](Figure_3.png)  
 source: [https://sgugger.github.io/the-1cycle-policy.html](https://sgugger.github.io/the-1cycle-policy.html)
 
 The rationale behind this heuristic schedule on training is that the learning rate found from the first phase might be too large and we need to use a smaller learning rates, but if we use the large learning rate in the middle, it helps to jump from sharp minimas, which has bad generalization ([https://www.inference.vc/everything-that-works-works-because-its-bayesian-2/](https://www.inference.vc/everything-that-works-works-because-its-bayesian-2/)), and once we have jumped from them, we decrease the learning rate again, to converge to the minima of an area that is hopefully not sharp.
 
 To see the effectiveness of the one cycle policy, we also train two separate models with constant learning rates. The first model uses the largest learning rate that we used in one cycle policy (the learning rate in the mid epoch), and the second model uses the smallest learning rate that we used in the one cycle policy (the learning rate in the first and last epoch). We see that even in 10 epochs, the method obtains better accuracy on validation data.  
-![][image4]
+![Figure_4](Figure_4.png) 
